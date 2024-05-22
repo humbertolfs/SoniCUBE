@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "ADCSampler.h"
+#include <ADCSampler.h>
 
 ADCSampler *adcSampler = NULL;
 I2SSampler *i2sSampler = NULL;
