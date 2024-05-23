@@ -20,7 +20,7 @@ void ADCSampler::unConfigureI2S()
     i2s_adc_disable(m_i2sPort);
 }
 
-int ADCSampler::read(int16_t *samples, int count)
+int ADCSampler::read(int16_t *samples, float *vReal, float *vImag, int count)
 {
     // read from i2s
     size_t bytes_read = 0;
@@ -28,7 +28,8 @@ int ADCSampler::read(int16_t *samples, int count)
     int samples_read = bytes_read / sizeof(int16_t);
     for (int i = 0; i < samples_read; i++)
     {
-        samples[i] = uint16_t(samples[i]) & 0xfff;
+        vReal[i] = static_cast<float>(uint16_t(samples[i]) & 0xfff);
+        vImag[i] = 0.0;
     }
     return samples_read;
 }

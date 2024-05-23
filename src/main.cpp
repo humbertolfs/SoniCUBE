@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ADCSampler.h>
+#include <arduinoFFT.h>
 
 ADCSampler *adcSampler = NULL;
 I2SSampler *i2sSampler = NULL;
@@ -22,6 +23,8 @@ i2s_config_t adcI2SConfig = {
 // how many samples to read at once
 const int SAMPLE_SIZE = 1024;
 
+ArduinoFFT<float> FFT;
+
 /**
  * This function is the task that reads samples from an I2S sampler and prints them to the serial monitor.
  *
@@ -31,19 +34,38 @@ void adcWriterTask(void *param)
 {
   I2SSampler *sampler = (I2SSampler *)param;
   int16_t *samples = (int16_t *)malloc(sizeof(uint16_t) * SAMPLE_SIZE);
+  float *vReal = (float *)malloc(sizeof(float) * SAMPLE_SIZE);
+  float *vImag = (float *)malloc(sizeof(float) * SAMPLE_SIZE);
+
   if (!samples)
   {
     Serial.println("Failed to allocate memory for samples");
     return;
   }
+
   while (true)
   {
-    int samples_read = sampler->read(samples, SAMPLE_SIZE);
+    int samples_read = sampler->read(samples, vReal, vImag, SAMPLE_SIZE);
+    FFT = ArduinoFFT<float>(vReal, vImag, samples_read, 40000.0);
+
     digitalWrite(2, HIGH);
-    for (int i = 0; i < samples_read; i++)
-    {
-        Serial.println(samples[i]);
-    }
+    // for (int i = 0; i < samples_read; i++)
+    // {
+    //     Serial.print(samples[i]);
+    //     Serial.print(", ");
+    //     Serial.println(vImag[i]);
+    // }
+
+    FFT.dcRemoval();
+    FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+    FFT.compute(FFT_FORWARD);
+    FFT.complexToMagnitude();
+
+    float peak = FFT.majorPeak();
+
+    Serial.print("Peak: ");
+    Serial.println(peak);
+    
     digitalWrite(2, LOW);
   }
 }

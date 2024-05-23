@@ -17,7 +17,7 @@ protected:
 public:
     I2SSampler(i2s_port_t i2sPort, const i2s_config_t &i2sConfig);
     void start();
-    virtual int read(int16_t *samples, int count) = 0;
+    virtual int read(int16_t *samples, float *vReal, float *vImag, int count) = 0;
     void stop();
     int sample_rate()
     {
