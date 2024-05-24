@@ -2,6 +2,35 @@
 #include <ADCSampler.h>
 #include <arduinoFFT.h>
 
+#include <iostream>
+#include <cmath>
+#include <string>
+#include <vector>
+
+std::string frequencyToNoteName(float frequency) {
+    // Nomes das notas musicais em uma oitava
+    std::vector<std::string> noteNames = {
+        "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
+    };
+
+    // Verificar se a frequência está dentro do intervalo válido
+    if (frequency <= 0) {
+        return "Invalid Frequency";
+    }
+
+    // Cálculo do número de semitons em relação ao A4
+    int semitonesFromA4 = std::round(12 * std::log2(frequency / 440.0));
+
+    // Calcula a posição da nota na oitava
+    int noteIndex = (semitonesFromA4-3) % 12;
+    if (noteIndex < 0) {
+        noteIndex += 12;
+    }
+
+    // Retorna o nome da nota musical com a oitava
+    return noteNames[noteIndex];
+}
+
 ADCSampler *adcSampler = NULL;
 I2SSampler *i2sSampler = NULL;
 
@@ -46,15 +75,10 @@ void adcWriterTask(void *param)
   while (true)
   {
     int samples_read = sampler->read(samples, vReal, vImag, SAMPLE_SIZE);
+
     FFT = ArduinoFFT<float>(vReal, vImag, samples_read, 40000.0);
 
     digitalWrite(2, HIGH);
-    // for (int i = 0; i < samples_read; i++)
-    // {
-    //     Serial.print(samples[i]);
-    //     Serial.print(", ");
-    //     Serial.println(vImag[i]);
-    // }
 
     FFT.dcRemoval();
     FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
@@ -62,9 +86,15 @@ void adcWriterTask(void *param)
     FFT.complexToMagnitude();
 
     float peak = FFT.majorPeak();
-
-    Serial.print("Peak: ");
-    Serial.println(peak);
+    if(peak > 440.0 && peak < 8000.0) {
+      Serial.print("Peak: ");
+      Serial.print(peak);
+      Serial.print("Hz, ");
+      std::string note = frequencyToNoteName(peak);
+      Serial.print("Note: ");
+      Serial.println(note.c_str());
+      
+    }
     
     digitalWrite(2, LOW);
   }
