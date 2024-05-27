@@ -1,13 +1,120 @@
 #include <Arduino.h>
 #include <ADCSampler.h>
 #include <arduinoFFT.h>
+#include <BleGamepad.h>
 
 #include <iostream>
 #include <cmath>
 #include <string>
 #include <vector>
 
-std::string frequencyToNoteName(float frequency) {
+BleGamepad bleGamepad("SoniCUBE", "Humberto Lopes {hlfs2@cin.ufpe.br}", 100);
+
+void sendData(int note){
+  switch (note)
+  {
+  //dpad left
+  case 0:
+    bleGamepad.setHat1(HAT_LEFT);
+    delay(100);
+    bleGamepad.setHat1(0);
+    Serial.println("left pressed");
+    break;
+
+  //dpad down
+  case 1:
+    bleGamepad.setHat1(HAT_DOWN);
+    delay(100);
+    bleGamepad.setHat1(0);
+    Serial.println("down pressed");
+    break;
+
+  //dpad right
+  case 2:
+    bleGamepad.setHat1(HAT_RIGHT);
+    delay(100);
+    bleGamepad.setHat1(0);
+    Serial.println("right pressed");
+    break;
+
+  //dpad up
+  case 3:
+    bleGamepad.setHat1(HAT_UP);
+    delay(100);
+    bleGamepad.setHat1(0);
+    Serial.println("up pressed");
+    break;
+
+  //button LT
+  case 4:
+    bleGamepad.press(BUTTON_9);
+    delay(100);
+    bleGamepad.release(BUTTON_9);
+    Serial.println("LT pressed");
+    break;
+
+  //button LB
+  case 5:
+    bleGamepad.press(BUTTON_7);
+    delay(100);
+    bleGamepad.release(BUTTON_7);
+    Serial.println("LB pressed");
+    break;
+
+  //button RB
+  case 6:
+    bleGamepad.press(BUTTON_8);
+    delay(100);
+    bleGamepad.release(BUTTON_8);
+    Serial.println("RB pressed");
+    break;
+
+  //button RT
+  case 7:
+    bleGamepad.press(BUTTON_10);
+    delay(100);
+    bleGamepad.release(BUTTON_10);
+    Serial.println("RT pressed");
+    break;
+
+  //button X
+  case 8:
+    bleGamepad.press(BUTTON_4);
+    delay(100);
+    bleGamepad.release(BUTTON_4);
+    Serial.println("X pressed");
+    break;
+
+  //button A
+  case 9:
+    bleGamepad.press(BUTTON_1);
+    delay(100);
+    bleGamepad.release(BUTTON_1);
+    Serial.println("A pressed");
+    break;
+
+  //button B
+  case 10:
+    bleGamepad.press(BUTTON_2);
+    delay(100);
+    bleGamepad.release(BUTTON_2);
+    Serial.println("B pressed");
+    break;
+
+  //button Y
+  case 11:
+    bleGamepad.press(BUTTON_5);
+    delay(100);
+    bleGamepad.release(BUTTON_5);
+    Serial.println("Y pressed");
+    break;
+  
+  default:
+    break;
+  }
+}
+
+int frequencyToNoteName(float frequency) {
     // Nomes das notas musicais em uma oitava
     std::vector<std::string> noteNames = {
         "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
@@ -15,7 +122,7 @@ std::string frequencyToNoteName(float frequency) {
 
     // Verificar se a frequência está dentro do intervalo válido
     if (frequency <= 0) {
-        return "Invalid Frequency";
+        return -1;
     }
 
     // Cálculo do número de semitons em relação ao A4
@@ -28,7 +135,7 @@ std::string frequencyToNoteName(float frequency) {
     }
 
     // Retorna o nome da nota musical com a oitava
-    return noteNames[noteIndex];
+    return noteIndex;
 }
 
 ADCSampler *adcSampler = NULL;
@@ -53,6 +160,9 @@ i2s_config_t adcI2SConfig = {
 const int SAMPLE_SIZE = 1024;
 
 ArduinoFFT<float> FFT;
+
+int count = 0;
+int note = -1;
 
 /**
  * This function is the task that reads samples from an I2S sampler and prints them to the serial monitor.
@@ -86,14 +196,24 @@ void adcWriterTask(void *param)
     FFT.complexToMagnitude();
 
     float peak = FFT.majorPeak();
-    if(peak > 440.0 && peak < 8000.0) {
-      Serial.print("Peak: ");
-      Serial.print(peak);
-      Serial.print("Hz, ");
-      std::string note = frequencyToNoteName(peak);
-      Serial.print("Note: ");
-      Serial.println(note.c_str());
-      
+    int newNote = frequencyToNoteName(peak);
+    
+    if(note != newNote){
+      note = newNote;
+      count = 0;
+    } else if(newNote != -1){
+      count++;
+    } else {
+      Serial.println("No note detected");
+      count = 0;
+    }
+    
+    if(bleGamepad.isConnected()){
+      if(count >= 10){
+        count = 0;
+        Serial.println(note);
+        sendData(note);
+      }
     }
     
     digitalWrite(2, LOW);
@@ -103,7 +223,8 @@ void adcWriterTask(void *param)
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("Started up");
+  Serial.println("Starting BLE work!");
+  bleGamepad.begin();
 
   // indicator LED
   pinMode(2, OUTPUT);
