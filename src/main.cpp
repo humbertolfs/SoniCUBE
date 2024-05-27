@@ -163,6 +163,9 @@ ArduinoFFT<float> FFT;
 
 int count = 0;
 int note = -1;
+int lastNote = -1;
+unsigned long lastNoteTime = 0;
+const unsigned long NOTE_COOLDOWN = 200;
 
 /**
  * This function is the task that reads samples from an I2S sampler and prints them to the serial monitor.
@@ -208,12 +211,16 @@ void adcWriterTask(void *param)
       count = 0;
     }
     
-    if(bleGamepad.isConnected()){
-      if(count >= 10){
-        count = 0;
-        Serial.println(note);
-        sendData(note);
-      }
+    if (bleGamepad.isConnected() && note != -1) {
+        if (count >= 15) {
+            if (millis() - lastNoteTime > NOTE_COOLDOWN || note != lastNote) {
+                lastNote = note;
+                lastNoteTime = millis();
+                count = 0;
+                Serial.println(note);
+                sendData(note);
+            }
+        }
     }
     
     digitalWrite(2, LOW);
