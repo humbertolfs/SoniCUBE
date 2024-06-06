@@ -189,7 +189,7 @@ void adcWriterTask(void *param)
     FFT = ArduinoFFT<float>(vReal, vImag, samples_read, 40000.0);
 
     FFT.dcRemoval();
-    FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+    FFT.windowing(FFT_WIN_TYP_HANN, FFT_FORWARD);
     FFT.compute(FFT_FORWARD);
     FFT.complexToMagnitude();
 
