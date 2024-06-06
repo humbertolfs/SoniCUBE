@@ -126,13 +126,10 @@ int frequencyToNoteName(float frequency) {
     }
 
     // Cálculo do número de semitons em relação ao A4
-    int semitonesFromA4 = std::round(12 * std::log2(frequency / 440.0));
+    int semitonesFromA4 = 12 * std::log2(frequency / 440.0) + 69;
 
     // Calcula a posição da nota na oitava
-    int noteIndex = (semitonesFromA4-3) % 12;
-    if (noteIndex < 0) {
-        noteIndex += 12;
-    }
+    int noteIndex = (semitonesFromA4) % 12;
 
     // Retorna o nome da nota musical com a oitava
     return noteIndex;
@@ -191,8 +188,6 @@ void adcWriterTask(void *param)
 
     FFT = ArduinoFFT<float>(vReal, vImag, samples_read, 40000.0);
 
-    digitalWrite(2, HIGH);
-
     FFT.dcRemoval();
     FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
     FFT.compute(FFT_FORWARD);
@@ -210,6 +205,8 @@ void adcWriterTask(void *param)
       Serial.println("No note detected");
       count = 0;
     }
+    
+    digitalWrite(2, HIGH);
     
     if (bleGamepad.isConnected() && note != -1) {
         if (count >= 15) {
