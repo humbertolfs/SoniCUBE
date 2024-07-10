@@ -147,14 +147,14 @@ i2s_config_t adcI2SConfig = {
     .communication_format = I2S_COMM_FORMAT_I2S_LSB,
     .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
     .dma_buf_count = 2,
-    .dma_buf_len = 512,
+    .dma_buf_len = 1024,
     .use_apll = false,
     .tx_desc_auto_clear = false,
     .fixed_mclk = 0};
 
 
 // how many samples to read at once
-const int SAMPLE_SIZE = 512;
+const int SAMPLE_SIZE = 1024;
 
 ArduinoFFT<float> FFT;
 
@@ -162,7 +162,7 @@ int count = 0;
 int note = -1;
 int lastNote = -1;
 unsigned long lastNoteTime = 0;
-const unsigned long NOTE_COOLDOWN = 200;
+const unsigned long NOTE_COOLDOWN = 550;
 
 /**
  * This function is the task that reads samples from an I2S sampler and prints them to the serial monitor.
@@ -201,27 +201,25 @@ void adcWriterTask(void *param)
       count = 0;
     } else if(newNote != -1){
       count++;
-    } else {
+      if (count >= 15 && bleGamepad.isConnected() && note != -1) {
+        count = 0;
+        digitalWrite(2, HIGH);
+        if (millis() - lastNoteTime > NOTE_COOLDOWN || note != lastNote) {
+          lastNote = note;
+          lastNoteTime = millis();
+          Serial.println(note);
+          sendData(note);
+        } else {
+          Serial.println("Note is on cooldown");
+        } 
+        digitalWrite(2, LOW);
+      }
+    } else if(newNote == -1){
       Serial.println("No note detected");
       count = 0;
     }
-    
-    digitalWrite(2, HIGH);
-    
-    if (bleGamepad.isConnected() && note != -1) {
-        if (count >= 15) {
-            if (millis() - lastNoteTime > NOTE_COOLDOWN || note != lastNote) {
-                lastNote = note;
-                lastNoteTime = millis();
-                count = 0;
-                Serial.println(note);
-                sendData(note);
-            }
-        }
-    }
-    
-    digitalWrite(2, LOW);
   }
+
 }
 
 void setup()
