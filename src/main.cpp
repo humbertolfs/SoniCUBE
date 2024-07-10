@@ -146,7 +146,7 @@ i2s_config_t adcI2SConfig = {
     .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
     .communication_format = I2S_COMM_FORMAT_I2S_LSB,
     .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-    .dma_buf_count = 4,
+    .dma_buf_count = 2,
     .dma_buf_len = 512,
     .use_apll = false,
     .tx_desc_auto_clear = false,
@@ -154,7 +154,7 @@ i2s_config_t adcI2SConfig = {
 
 
 // how many samples to read at once
-const int SAMPLE_SIZE = 1024;
+const int SAMPLE_SIZE = 512;
 
 ArduinoFFT<float> FFT;
 
